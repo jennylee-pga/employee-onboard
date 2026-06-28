@@ -213,6 +213,8 @@ function AuthScreen({ onAuth }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
+  const [needsProfile, setNeedsProfile] = useState(false);
+  const [pendingAuth, setPendingAuth] = useState(null); // { user, token }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -257,14 +259,60 @@ function AuthScreen({ onAuth }) {
         const profiles = await supabase.query("profiles", {
           token: res.access_token, params: `?id=eq.${res.user.id}&select=first_name,last_name`,
         });
-        const profile = Array.isArray(profiles) && profiles[0] ? profiles[0] : { first_name: "Staff", last_name: "" };
-        onAuth({ user: res.user, token: res.access_token, firstName: profile.first_name, lastName: profile.last_name });
+        if (Array.isArray(profiles) && profiles.length > 0 && profiles[0].first_name) {
+          onAuth({ user: res.user, token: res.access_token, firstName: profiles[0].first_name, lastName: profiles[0].last_name });
+        } else {
+          // No profile yet — prompt for name (happens after email confirmation signup)
+          setPendingAuth({ user: res.user, token: res.access_token });
+          setNeedsProfile(true);
+        }
       }
     } catch (err) {
       setError("Connection error. Please try again.");
     }
     setLoading(false);
   };
+
+  const handleProfileComplete = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!firstName.trim() || !lastName.trim()) { setError("First and last name are required."); return; }
+    setLoading(true);
+    try {
+      await supabase.query("profiles", {
+        method: "POST", token: pendingAuth.token,
+        body: { id: pendingAuth.user.id, first_name: firstName.trim(), last_name: lastName.trim() },
+      });
+      onAuth({ user: pendingAuth.user, token: pendingAuth.token, firstName: firstName.trim(), lastName: lastName.trim() });
+    } catch (err) {
+      setError("Could not save profile. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  if (needsProfile) {
+    return (
+      <div style={base}>
+        <div style={card}>
+          <div style={{ textAlign: "center", marginBottom: "24px" }}>
+            <div style={{ fontSize: "48px", marginBottom: "8px" }}>⛳</div>
+            <h2 style={{ color: C.green }}>Complete Your Profile</h2>
+            <p style={{ color: C.textLight }}>Enter your name to finish setting up your account.</p>
+          </div>
+          <form onSubmit={handleProfileComplete}>
+            <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+              <input placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} style={{ ...inputStyle, flex: 1 }} required />
+              <input placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} style={{ ...inputStyle, flex: 1 }} required />
+            </div>
+            {error && <p style={{ color: "#C0392B", fontSize: "14px", marginBottom: "12px" }}>{error}</p>}
+            <button type="submit" disabled={loading} style={{ ...btnPrimary, width: "100%", opacity: loading ? 0.7 : 1 }}>
+              {loading ? "Saving..." : "Continue"}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   if (signupSuccess) {
     return (
