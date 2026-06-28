@@ -541,7 +541,11 @@ export default function HideawayQuiz() {
       <div style={base}>
         <div style={card}>
           <div style={{ marginBottom: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "14px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", fontSize: "14px" }}>
+              <button onClick={() => { if (window.confirm("Are you sure you want to exit? Your progress on this quiz will be lost.")) setScreen("home"); }}
+                style={{ background: "none", border: "none", color: C.textLight, cursor: "pointer", fontFamily: "inherit", fontSize: "14px", padding: "2px 0", textDecoration: "underline" }}>
+                Exit Quiz
+              </button>
               <span style={{ color: C.textLight }}>Question {currentQ + 1} of {questions.length}</span>
               <span style={{ color: C.green, fontWeight: "600" }}>Score: {score}/{currentQ + (confirmed ? 1 : 0)}</span>
             </div>
