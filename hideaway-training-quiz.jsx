@@ -252,7 +252,7 @@ function AuthScreen({ onAuth }) {
         }
       } else {
         const res = await supabase.signIn(email, password);
-        if (res.error) { setError(res.error.message || res.error); setLoading(false); return; }
+        if (res.error || res.error_description) { setError(res.error_description || res.error?.message || res.error || "Sign in failed"); setLoading(false); return; }
         // Fetch profile
         const profiles = await supabase.query("profiles", {
           token: res.access_token, params: `?id=eq.${res.user.id}&select=first_name,last_name`,
